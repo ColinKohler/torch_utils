@@ -16,6 +16,7 @@ class DDQN(nn.Module):
       self.target_model = ConvDQN(state_shape, num_actions, conv_filters)
 
     self.tau = tau
+    torch_utils.hardUpdate(target_model, model)
 
   def forward(self, x):
     return self.model(x)

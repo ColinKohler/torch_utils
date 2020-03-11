@@ -19,3 +19,6 @@ def topk2d(tensor, k=1):
 def softUpdate(target_net, source_net, tau):
   for target_param, source_param in zip(target_net.parameters(), source_net.parameters()):
     target_param.data.copy_((1 - tau) * target_param.data + tau * source_param.data)
+
+def hardUpdate(target_net, source_net):
+  target_net.load_state_dict(source_net.state_dict())
