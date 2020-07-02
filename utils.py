@@ -1,7 +1,7 @@
 import torch
 
-def roundTensor(tensor):
-  return torch.round(tensor * 10) / 10
+def roundTensor(tensor, dec=0):
+  return torch.round(tensor * 10**dec) / 10**dec
 
 def argmax2d(tensor):
   n = tensor.size(0)

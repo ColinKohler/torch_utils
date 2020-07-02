@@ -37,14 +37,30 @@ class ConvBlock(nn.Module):
     return out
 
 class DoubleConvBlock(nn.Module):
-  def __init__(self, in_channels, out_channels, kernel=3, stride=1, padding=1):
+  def __init__(self, in_channels, out_channels, kernel=3, stride=1, padding=1, bnorm=False):
     super(DoubleConvBlock, self).__init__()
-    self.conv = nn.Sequential(
-      nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
-      nn.LeakyReLU(0.1, inplace=True),
-      nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=False),
-      nn.LeakyReLU(0.1, inplace=True),
-    )
+    if bnorm:
+      self.conv = nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
+        nn.BatchNorm2d(out_channels),
+        nn.LeakyReLU(0.1, inplace=True),
+        nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=False),
+        nn.BatchNorm2d(out_channels),
+        nn.LeakyReLU(0.1, inplace=True),
+      )
+    else:
+      self.conv = nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
+        nn.LeakyReLU(0.1, inplace=True),
+        nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=False),
+        nn.LeakyReLU(0.1, inplace=True),
+      )
+
+    self.conv.apply(self.initWeights)
+
+  def initWeights(self, m):
+    if type(m) == nn.Conv2d:
+      nn.init.kaiming_normal_(m.weight)
 
   def forward(self, x):
     out = self.conv(x)
@@ -79,9 +95,9 @@ class UpsamplingBlock(nn.Module):
     return out
 
 class ResUpsamplingBlock(nn.Module):
-  def __init__(self, in_channels, out_channels):
+  def __init__(self, in_channels, out_channels, bnorm=False):
     super(ResUpsamplingBlock, self).__init__()
-    self.conv = DoubleConvBlock(in_channels, out_channels)
+    self.conv = DoubleConvBlock(in_channels, out_channels, bnorm=bnorm)
 
   def forward(self, x1, x2):
     x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=True)
