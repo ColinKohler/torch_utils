@@ -43,7 +43,7 @@ def dictToCpu(dictionary):
     if isinstance(value, torch.Tensor):
       cpu_dict[key] = value.cpu()
     elif isinstance(value, dict):
-      cpu_dict[key] = dict_to_cpu(value)
+      cpu_dict[key] = dictToCpu(value)
     else:
       cpu_dict[key] = value
   return cpu_dict
