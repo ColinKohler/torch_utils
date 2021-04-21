@@ -30,6 +30,12 @@ def topk2d(tensor, k=1):
   idx = torch.cat(((idx // d).view(-1, 1), (idx % d).view(-1, 1)), dim=1)
   return val, idx
 
+def sample2d(tensor, k=1):
+  n = tensor.size(0)
+  d = tensor.size(-1)
+  idx =  torch.multinomial(tensor.view(n, -1), k)
+  return torch.cat(((idx // d).view(-1, 1), (idx % d).view(-1, 1)), dim=1)
+
 def softUpdate(target_net, source_net, tau):
   for target_param, source_param in zip(target_net.parameters(), source_net.parameters()):
     target_param.data.copy_((1 - tau) * target_param.data + tau * source_param.data)

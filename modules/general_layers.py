@@ -29,7 +29,7 @@ class ConvBlock(nn.Module):
 
     self.conv = nn.Sequential(
       nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
-      nn.LeakyReLU(0.1, inplace=True),
+      nn.LeakyReLU(0.01, inplace=True),
     )
 
   def forward(self, x):
@@ -43,17 +43,17 @@ class DoubleConvBlock(nn.Module):
       self.conv = nn.Sequential(
         nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
         nn.BatchNorm2d(out_channels),
-        nn.LeakyReLU(0.1, inplace=True),
+        nn.LeakyReLU(0.01, inplace=True),
         nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=False),
         nn.BatchNorm2d(out_channels),
-        nn.LeakyReLU(0.1, inplace=True),
+        nn.LeakyReLU(0.01, inplace=True),
       )
     else:
       self.conv = nn.Sequential(
         nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
-        nn.LeakyReLU(0.1, inplace=True),
+        nn.LeakyReLU(0.01, inplace=True),
         nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=False),
-        nn.LeakyReLU(0.1, inplace=True),
+        nn.LeakyReLU(0.01, inplace=True),
       )
 
     self.conv.apply(self.initWeights)
