@@ -74,11 +74,13 @@ class ResBlock(nn.Module):
       DoubleConvBlock(in_channels, out_channels, kernel, stride, padding),
       nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False)
     )
+    self.relu = nn.LeakyReLU(0.01, inplace=True)
 
   def forward(self, x):
     residual = x
     out = self.conv(x)
     out = out + residual
+    out = self.relu(out)
     return out
 
 class UpsamplingBlock(nn.Module):
@@ -100,7 +102,7 @@ class ResUpsamplingBlock(nn.Module):
     self.conv = DoubleConvBlock(in_channels, out_channels, bnorm=bnorm)
 
   def forward(self, x1, x2):
-    x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=True)
+    x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=False)
 
     # Pad the inputs so we can concat them together
     diff_y = x2.size(2) - x1.size(2)
