@@ -29,10 +29,10 @@ def logToPandas(log_path):
         value.append(x.value)
         if i == 0:
           step.append(x.step)
-      if len(value) == 25076:
-        log_data[tag] = value
       if i == 0:
         log_data['step'] = step
+      if len(value) == len(log_data['step']):
+        log_data[tag] = value
   except:
     print('Error reading event file: {}'.format(log_path))
 
