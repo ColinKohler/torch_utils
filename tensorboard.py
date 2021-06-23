@@ -1,6 +1,5 @@
 import glob
 import os
-import pandas as pd
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 DEFAULT_SIZE_GUIDANCE = {
@@ -10,7 +9,7 @@ DEFAULT_SIZE_GUIDANCE = {
   'histograms' : 1
 }
 
-def logToPandas(log_path):
+def logToArray(log_path, tags=list()):
   '''
   Convert tensorboard log file to pandas DataFrame
   '''
@@ -18,35 +17,25 @@ def logToPandas(log_path):
   try:
     event_acc = EventAccumulator(log_path, DEFAULT_SIZE_GUIDANCE)
     event_acc.Reload()
-    tags = event_acc.Tags()['scalars']
-    log_data = dict()
-    for i, tag in enumerate(tags):
-      event_list = event_acc.Scalars(tag)
-      value = list()
-      if i == 0:
-        step = list()
-      for x in event_list:
-        value.append(x.value)
-        if i == 0:
-          step.append(x.step)
-      if i == 0:
-        log_data['step'] = step
-      if len(value) == len(log_data['step']):
-        log_data[tag] = value
+    tb_tags = event_acc.Tags()['scalars']
+    data = dict()
+    for i, tag in enumerate(tb_tags):
+      if tag in tags:
+        event_list = event_acc.Scalars(tag)
+        value = list()
+        for x in event_list:
+          value.append(x.value)
+        data[tag] = value
   except:
     print('Error reading event file: {}'.format(log_path))
 
-  data = pd.DataFrame(log_data)
   return data
 
-def logsToPandas(log_paths):
-  data = pd.DataFrame()
+def logsToArrays(log_paths, tags=list()):
+  data = list()
   for path in log_paths:
-    log = logToPadas(path)
-    if log is not None:
-      if data.shape[0] == 0:
-        data = log
-      else:
-        data = data.append(log, ignore_index=True)
+    print('Reading event file: {}'.format(path))
+    log = logToArray(path, tags=tags)
+    data.append(log)
 
   return data
