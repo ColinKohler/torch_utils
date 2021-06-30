@@ -67,20 +67,25 @@ class DoubleConvBlock(nn.Module):
     return out
 
 class ResBlock(nn.Module):
-  def __init__(self, in_channels, out_channels, kernel=3, stride=1, padding=1):
+  def __init__(self, in_channels, out_channels, kernel=3, stride=1, padding=1, downsample=None):
     super(ResBlock, self).__init__()
+    self.downsample = downsample
 
     self.conv = nn.Sequential(
-      DoubleConvBlock(in_channels, out_channels, kernel, stride, padding),
-      nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False)
+      nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
+      nn.LeakyReLU(0.01, inplace=True),
+      nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=False)
     )
     self.relu = nn.LeakyReLU(0.01, inplace=True)
 
   def forward(self, x):
     residual = x
     out = self.conv(x)
-    out = out + residual
-    out = self.relu(out)
+
+    if self.downsample:
+      residual = self.downsample(x)
+    out = self.relu(out + residual)
+
     return out
 
 class UpsamplingBlock(nn.Module):
