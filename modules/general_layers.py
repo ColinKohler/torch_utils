@@ -102,9 +102,12 @@ class UpsamplingBlock(nn.Module):
     return out
 
 class ResUpsamplingBlock(nn.Module):
-  def __init__(self, in_channels, out_channels, bnorm=False):
+  def __init__(self, in_channels, out_channels, bnorm=False, res=False):
     super(ResUpsamplingBlock, self).__init__()
-    self.conv = ResBlock(in_channels, out_channels, downsample=nn.Conv2d(in_channels, out_channels, 1, bias=False))
+    if res:
+      self.conv = ResBlock(in_channels, out_channels, downsample=nn.Conv2d(in_channels, out_channels, 1, bias=False))
+    else:
+      self.conv = DoubleConvBlock(in_channels, out_channels)
 
   def forward(self, x1, x2):
     x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=False)
