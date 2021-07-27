@@ -37,24 +37,14 @@ class ConvBlock(nn.Module):
     return out
 
 class DoubleConvBlock(nn.Module):
-  def __init__(self, in_channels, out_channels, kernel=3, stride=1, padding=1, bnorm=False):
+  def __init__(self, in_channels, out_channels, kernel=3, stride=1, padding=1, bias=False):
     super(DoubleConvBlock, self).__init__()
-    if bnorm:
-      self.conv = nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
-        nn.BatchNorm2d(out_channels),
-        nn.LeakyReLU(0.01, inplace=True),
-        nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=False),
-        nn.BatchNorm2d(out_channels),
-        nn.LeakyReLU(0.01, inplace=True),
-      )
-    else:
-      self.conv = nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=False),
-        nn.LeakyReLU(0.01, inplace=True),
-        nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=False),
-        nn.LeakyReLU(0.01, inplace=True),
-      )
+    self.conv = nn.Sequential(
+      nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=bias),
+      nn.LeakyReLU(0.01, inplace=True),
+      nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=bias),
+      nn.LeakyReLU(0.01, inplace=True),
+    )
 
     self.conv.apply(self.initWeights)
 
@@ -102,12 +92,11 @@ class UpsamplingBlock(nn.Module):
     return out
 
 class ResUpsamplingBlock(nn.Module):
-  def __init__(self, in_channels, out_channels, bnorm=False, res=False):
+  def __init__(self, in_channels_1, in_channels_2, out_channels):
     super(ResUpsamplingBlock, self).__init__()
-    if res:
-      self.conv = ResBlock(in_channels, out_channels, downsample=nn.Conv2d(in_channels, out_channels, 1, bias=False))
-    else:
-      self.conv = DoubleConvBlock(in_channels, out_channels)
+    self.upsample_conv = nn.Conv2d(in_channels_1, in_channels_1, 3, stride=1, padding=1, bias=True)
+    self.relu = nn.LeakyReLU(0.01, inplace=True)
+    self.conv1 = nn.Conv2d(in_channels_1 + in_channels_2, out_channels, 1, bias=True)
 
   def forward(self, x1, x2):
     x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=False)
@@ -118,6 +107,11 @@ class ResUpsamplingBlock(nn.Module):
     x1 = F.pad(x1, (diff_x // 2, diff_x - diff_x // 2,
                     diff_y // 2, diff_y - diff_y // 2))
 
+    x1 = self.upsample_conv(x1) + x1
+    x1 = self.relu(x1)
+
     x = torch.cat([x2, x1], dim=1)
-    x = self.conv(x)
-    return x
+    out = self.conv1(x)
+    #x = torch.cat([x2, x1], dim=1)
+    #x = self.conv(x)
+    return out
