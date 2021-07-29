@@ -47,9 +47,9 @@ class Basic1x1Block(nn.Module):
         norm_layer = nn.BatchNorm2d
 
       self.conv1 = conv1x1(in_kernels, kernels, stride)
-      #self.bn1 = norm_layer(kernels)
+      self.bn1 = norm_layer(kernels)
       self.conv2 = conv1x1(kernels, kernels, stride)
-      #self.bn2 = norm_layer(kernels)
+      self.bn2 = norm_layer(kernels)
 
       self.downsample = downsample
       self.stride = stride
@@ -59,11 +59,11 @@ class Basic1x1Block(nn.Module):
       identity = x
 
       out = self.conv1(x)
-      #out = self.bn1(out)
+      out = self.bn1(out)
       out = self.relu(out)
 
       out = self.conv2(out)
-      #out = self.bn2(out)
+      out = self.bn2(out)
 
       if self.downsample is not None:
         identity = self.downsample(x)
@@ -84,9 +84,9 @@ class BasicBlock(nn.Module):
         norm_layer = nn.BatchNorm2d
 
       self.conv1 = conv3x3(in_kernels, kernels, stride)
-      #self.bn1 = norm_layer(kernels)
+      self.bn1 = norm_layer(kernels)
       self.conv2 = conv3x3(kernels, kernels)
-      #self.bn2 = norm_layer(kernels)
+      self.bn2 = norm_layer(kernels)
 
       self.downsample = downsample
       self.stride = stride
@@ -96,11 +96,11 @@ class BasicBlock(nn.Module):
       identity = x
 
       out = self.conv1(x)
-      #out = self.bn1(out)
+      out = self.bn1(out)
       out = self.relu(out)
 
       out = self.conv2(out)
-      #out = self.bn2(out)
+      out = self.bn2(out)
 
       if self.downsample is not None:
         identity = self.downsample(x)
@@ -120,11 +120,11 @@ class BottleneckBlock(nn.Module):
         norm_layer = nn.BatchNorm2d
 
       self.conv1 = conv1x1(in_kernels, kernels)
-      #self.bn1 = norm_layer(kernels)
+      self.bn1 = norm_layer(kernels)
       self.conv2 = conv3x3(kernels, kernels, stride, groups, dilation)
-      #self.bn2 = norm_layer(kernels)
+      self.bn2 = norm_layer(kernels)
       self.conv3 = conv1x1(kernels, kernels * self.expansion)
-      #self.bn3 = norm_layer(kernels * self.expansion)
+      self.bn3 = norm_layer(kernels * self.expansion)
 
       self.downsample = downsample
       self.stride = stride
@@ -134,15 +134,15 @@ class BottleneckBlock(nn.Module):
     identity = x
 
     out = self.conv1(x)
-    #out = self.bn1(out)
+    out = self.bn1(out)
     out = self.relu(out)
 
     out = self.conv2(out)
-    #out = self.bn2(out)
+    out = self.bn2(out)
     out = self.relu(out)
 
     out = self.conv3(out)
-    #out = self.bn3(out)
+    out = self.bn3(out)
 
     if self.downsample is not None:
       identity = self.downsample(x)
@@ -152,29 +152,29 @@ class BottleneckBlock(nn.Module):
 
     return out
 
-class UpsamplingBlock(nn.Module):
-  def __init__(self, in_channels_1, in_channels_2, out_channels):
-    super(UpsamplingBlock, self).__init__()
-    self.upsample_conv = nn.Conv2d(in_channels_1, in_channels_1, 3, stride=1, padding=1, bias=True)
-    self.relu = nn.LeakyReLU(0.01, inplace=True)
-    self.conv1 = nn.Conv2d(in_channels_1 + in_channels_2, out_channels, 1, bias=True)
-
-  def forward(self, x1, x2):
-    x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=False)
-
-    # Pad the inputs so we can concat them together
-    diff_y = x2.size(2) - x1.size(2)
-    diff_x = x2.size(3) - x1.size(3)
-    x1 = F.pad(x1, (diff_x // 2, diff_x - diff_x // 2,
-                    diff_y // 2, diff_y - diff_y // 2))
-
-    x1 = self.upsample_conv(x1) + x1
-    x1 = self.relu(x1)
-
-    x = torch.cat([x2, x1], dim=1)
-    out = self.conv1(x)
-
-    return out
+#class UpsamplingBlock(nn.Module):
+#  def __init__(self, in_channels_1, in_channels_2, out_channels):
+#    super(UpsamplingBlock, self).__init__()
+#    self.upsample_conv = nn.Conv2d(in_channels_1, in_channels_1, 3, stride=1, padding=1, bias=True)
+#    self.relu = nn.LeakyReLU(0.01, inplace=True)
+#    self.conv1 = nn.Conv2d(in_channels_1 + in_channels_2, out_channels, 1, bias=True)
+#
+#  def forward(self, x1, x2):
+#    x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=False)
+#
+#    # Pad the inputs so we can concat them together
+#    diff_y = x2.size(2) - x1.size(2)
+#    diff_x = x2.size(3) - x1.size(3)
+#    x1 = F.pad(x1, (diff_x // 2, diff_x - diff_x // 2,
+#                    diff_y // 2, diff_y - diff_y // 2))
+#
+#    x1 = self.upsample_conv(x1) + x1
+#    x1 = self.relu(x1)
+#
+#    x = torch.cat([x2, x1], dim=1)
+#    out = self.conv1(x)
+#
+#    return out
 
 class UnpoolingAsConvolution(nn.Module):
   def __init__(self, in_kernels, out_kernels):
@@ -209,11 +209,16 @@ class UpsamplingBlock(nn.Module):
 
     self.layer = nn.Sequential(
       UnpoolingAsConvolution(in_kernels, kernels),
+      nn.BatchNorm2d(kernels),
       nn.LeakyReLU(0.01, inplace=False),
-      nn.Conv2d(kernels, kernels, kernel_size=3, stride=1, padding=1)
+      nn.Conv2d(kernels, kernels, kernel_size=3, stride=1, padding=1),
+      nn.BatchNorm2d(kernels)
     )
 
-    self.res_layer = UnpoolingAsConvolution(in_kernels, kernels)
+    self.res_layer = nn.Sequential(
+      UnpoolingAsConvolution(in_kernels, kernels),
+      nn.BatchNorm2d(kernels)
+    )
     self.relu = nn.LeakyReLU(0.01, inplace=False)
 
   def forward(self, x):
