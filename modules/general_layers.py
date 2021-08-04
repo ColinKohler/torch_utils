@@ -41,20 +41,15 @@ class DoubleConvBlock(nn.Module):
     super(DoubleConvBlock, self).__init__()
     self.conv = nn.Sequential(
       nn.Conv2d(in_channels, out_channels, kernel, stride=stride, padding=padding, bias=bias),
+      nn.BatchNorm2d(out_channels),
       nn.LeakyReLU(0.01, inplace=True),
       nn.Conv2d(out_channels, out_channels, kernel, stride=1, padding=padding, bias=bias),
+      nn.BatchNorm2d(out_channels),
       nn.LeakyReLU(0.01, inplace=True),
     )
 
-    self.conv.apply(self.initWeights)
-
-  def initWeights(self, m):
-    if type(m) == nn.Conv2d:
-      nn.init.kaiming_normal_(m.weight)
-
   def forward(self, x):
-    out = self.conv(x)
-    return out
+    return self.conv(x)
 
 class ResBlock(nn.Module):
   def __init__(self, in_channels, out_channels, kernel=3, stride=1, padding=1, downsample=None):
