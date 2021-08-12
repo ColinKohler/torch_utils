@@ -27,7 +27,8 @@ def makeLayer(block, in_kernels, kernels, blocks, stride=1):
   downsample = None
   if stride != 1 or in_kernels != kernels * block.expansion:
     downsample = nn.Sequential(
-      nn.Conv2d(in_kernels, kernels * block.expansion, kernel_size=1, stride=stride, bias=False)
+      nn.Conv2d(in_kernels, kernels * block.expansion, kernel_size=1, stride=stride, bias=False),
+      nn.BatchNorm2d(kernels * block.expansion)
     )
 
   layers = list()
@@ -152,30 +153,6 @@ class BottleneckBlock(nn.Module):
 
     return out
 
-#class UpsamplingBlock(nn.Module):
-#  def __init__(self, in_channels_1, in_channels_2, out_channels):
-#    super(UpsamplingBlock, self).__init__()
-#    self.upsample_conv = nn.Conv2d(in_channels_1, in_channels_1, 3, stride=1, padding=1, bias=True)
-#    self.relu = nn.LeakyReLU(0.01, inplace=True)
-#    self.conv1 = nn.Conv2d(in_channels_1 + in_channels_2, out_channels, 1, bias=True)
-#
-#  def forward(self, x1, x2):
-#    x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=False)
-#
-#    # Pad the inputs so we can concat them together
-#    diff_y = x2.size(2) - x1.size(2)
-#    diff_x = x2.size(3) - x1.size(3)
-#    x1 = F.pad(x1, (diff_x // 2, diff_x - diff_x // 2,
-#                    diff_y // 2, diff_y - diff_y // 2))
-#
-#    x1 = self.upsample_conv(x1) + x1
-#    x1 = self.relu(x1)
-#
-#    x = torch.cat([x2, x1], dim=1)
-#    out = self.conv1(x)
-#
-#    return out
-
 class UnpoolingAsConvolution(nn.Module):
   def __init__(self, in_kernels, out_kernels):
     super(UnpoolingAsConvolution, self).__init__()
@@ -225,6 +202,37 @@ class UpsamplingBlock(nn.Module):
     identity = x
 
     x = self.layer(x)
+    identity = self.res_layer(identity)
+
+    x += identity
+    x = self.relu(x)
+
+    return x
+
+class UpsamplingBlock2(nn.Module):
+  def __init__(self, in_kernels, kernels):
+    super(UpsamplingBlock2, self).__init__()
+
+    self.layer = nn.Sequential(
+      nn.LeakyReLU(0.01, inplace=False),
+      nn.Conv2d(in_kernels, kernels, kernel_size=3, stride=1, padding=1),
+      nn.BatchNorm2d(kernels)
+    )
+
+    self.res_layer = nn.Sequential(
+      nn.Conv2d(in_kernels, kernels, kernel_size=1),
+      nn.BatchNorm2d(kernels)
+    )
+
+    self.relu = nn.LeakyReLU(0.01, inplace=False)
+
+  def forward(self, x, x2):
+    identity = x
+
+    x  = F.interpolate(x, size=x2.size()[2:], mode='bilinear', align_corners=False)
+    x = self.layer(x)
+
+    identity  = F.interpolate(identity, size=x2.size()[2:], mode='bilinear', align_corners=False)
     identity = self.res_layer(identity)
 
     x += identity

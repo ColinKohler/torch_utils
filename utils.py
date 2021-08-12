@@ -33,7 +33,7 @@ def topk2d(tensor, k=1):
 def sample2d(tensor, k=1):
   n = tensor.size(0)
   d = tensor.size(-1)
-  idx =  torch.multinomial(tensor.view(n, -1), k)
+  idx =  torch.multinomial(tensor.reshape(n, -1), k)
   return torch.cat((torch.divide(idx, d, rounding_mode='trunc').view(-1, 1), (idx % d).view(-1, 1)), dim=1)
 
 def softUpdate(target_net, source_net, tau):
