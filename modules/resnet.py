@@ -23,16 +23,19 @@ def interleave(tensors, axis):
 
   return reshaped
 
-def makeLayer(block, in_kernels, kernels, blocks, stride=1):
+def makeLayer(block, in_kernels, kernels, blocks, stride=1, bnorm=True):
   downsample = None
   if stride != 1 or in_kernels != kernels * block.expansion:
-    downsample = nn.Sequential(
-      nn.Conv2d(in_kernels, kernels * block.expansion, kernel_size=1, stride=stride, bias=False),
-      nn.BatchNorm2d(kernels * block.expansion)
-    )
+    if bnorm:
+      downsample = nn.Sequential(
+        nn.Conv2d(in_kernels, kernels * block.expansion, kernel_size=1, stride=stride, bias=False),
+        nn.BatchNorm2d(kernels * block.expansion)
+      )
+    else:
+      downsample = nn.Conv2d(in_kernels, kernels * block.expansion, kernel_size=1, stride=stride, bias=False)
 
   layers = list()
-  layers.append(block(in_kernels, kernels, stride, downsample))
+  layers.append(block(in_kernels, kernels, stride, downsample, bnorm=bnorm))
   in_kernels = kernels * block.expansion
   for i in range(1, blocks):
     layers.append(block(in_kernels, kernels))
@@ -79,15 +82,20 @@ class BasicBlock(nn.Module):
     expansion = 1
 
     def __init__(self, in_kernels, kernels, stride=1, downsample=None, groups=1,
-                 dilation=1, norm_layer=None):
+                 dilation=1, norm_layer=None, bnorm=True):
       super(BasicBlock, self).__init__()
       if norm_layer is None:
         norm_layer = nn.BatchNorm2d
 
-      self.conv1 = conv3x3(in_kernels, kernels, stride)
-      self.bn1 = norm_layer(kernels)
-      self.conv2 = conv3x3(kernels, kernels)
-      self.bn2 = norm_layer(kernels)
+      self.bnorm = bnorm
+      if self.bnorm:
+        self.conv1 = conv3x3(in_kernels, kernels, stride)
+        self.bn1 = norm_layer(kernels)
+        self.conv2 = conv3x3(kernels, kernels)
+        self.bn2 = norm_layer(kernels)
+      else:
+        self.conv1 = conv3x3(in_kernels, kernels, stride)
+        self.conv2 = conv3x3(kernels, kernels)
 
       self.downsample = downsample
       self.stride = stride
@@ -97,11 +105,13 @@ class BasicBlock(nn.Module):
       identity = x
 
       out = self.conv1(x)
-      out = self.bn1(out)
+      if self.bnorm:
+        out = self.bn1(out)
       out = self.relu(out)
 
       out = self.conv2(out)
-      out = self.bn2(out)
+      if self.bnorm:
+        out = self.bn2(out)
 
       if self.downsample is not None:
         identity = self.downsample(x)
@@ -115,17 +125,23 @@ class BottleneckBlock(nn.Module):
   expansion = 2
 
   def __init__(self, in_kernels, kernels, stride=1, downsample=None, groups=1,
-                     dilation=1, norm_layer=None):
+                     dilation=1, norm_layer=None, bnorm=True):
       super(BottleneckBlock, self).__init__()
       if norm_layer is None:
         norm_layer = nn.BatchNorm2d
 
-      self.conv1 = conv1x1(in_kernels, kernels)
-      self.bn1 = norm_layer(kernels)
-      self.conv2 = conv3x3(kernels, kernels, stride, groups, dilation)
-      self.bn2 = norm_layer(kernels)
-      self.conv3 = conv1x1(kernels, kernels * self.expansion)
-      self.bn3 = norm_layer(kernels * self.expansion)
+      self.bnorm = bnorm
+      if self.bnorm:
+        self.conv1 = conv1x1(in_kernels, kernels)
+        self.bn1 = norm_layer(kernels)
+        self.conv2 = conv3x3(kernels, kernels, stride, groups, dilation)
+        self.bn2 = norm_layer(kernels)
+        self.conv3 = conv1x1(kernels, kernels * self.expansion)
+        self.bn3 = norm_layer(kernels * self.expansion)
+      else:
+        self.conv1 = conv1x1(in_kernels, kernels)
+        self.conv2 = conv3x3(kernels, kernels, stride, groups, dilation)
+        self.conv3 = conv1x1(kernels, kernels * self.expansion)
 
       self.downsample = downsample
       self.stride = stride
@@ -135,15 +151,18 @@ class BottleneckBlock(nn.Module):
     identity = x
 
     out = self.conv1(x)
-    out = self.bn1(out)
+    if self.bnorm:
+      out = self.bn1(out)
     out = self.relu(out)
 
     out = self.conv2(out)
-    out = self.bn2(out)
+    if self.bnorm:
+      out = self.bn2(out)
     out = self.relu(out)
 
     out = self.conv3(out)
-    out = self.bn3(out)
+    if self.bnorm:
+      out = self.bn3(out)
 
     if self.downsample is not None:
       identity = self.downsample(x)
@@ -210,19 +229,29 @@ class UpsamplingBlock(nn.Module):
     return x
 
 class UpsamplingBlock2(nn.Module):
-  def __init__(self, in_kernels, kernels):
+  def __init__(self, in_kernels, kernels, bnorm=True):
     super(UpsamplingBlock2, self).__init__()
 
-    self.layer = nn.Sequential(
-      nn.LeakyReLU(0.01, inplace=False),
-      nn.Conv2d(in_kernels, kernels, kernel_size=3, stride=1, padding=1),
-      nn.BatchNorm2d(kernels)
-    )
+    if bnorm:
+      self.layer = nn.Sequential(
+        nn.LeakyReLU(0.01, inplace=False),
+        nn.Conv2d(in_kernels, kernels, kernel_size=3, stride=1, padding=1),
+        nn.BatchNorm2d(kernels)
+      )
 
-    self.res_layer = nn.Sequential(
-      nn.Conv2d(in_kernels, kernels, kernel_size=1),
-      nn.BatchNorm2d(kernels)
-    )
+      self.res_layer = nn.Sequential(
+        nn.Conv2d(in_kernels, kernels, kernel_size=1),
+        nn.BatchNorm2d(kernels)
+      )
+    else:
+      self.layer = nn.Sequential(
+        nn.LeakyReLU(0.01, inplace=False),
+        nn.Conv2d(in_kernels, kernels, kernel_size=3, stride=1, padding=1),
+      )
+
+      self.res_layer = nn.Sequential(
+        nn.Conv2d(in_kernels, kernels, kernel_size=1),
+      )
 
     self.relu = nn.LeakyReLU(0.01, inplace=False)
 
