@@ -31,8 +31,12 @@ def topk2d(tensor, k=1):
   return val, idx
 
 def sample2d(tensor, k=1):
-  n = tensor.size(0)
-  d = tensor.size(-1)
+  if tensor.dim() == 2:
+    n = 1
+    d = tensor.size(-1)
+  else:
+    n = tensor.size(0)
+    d = tensor.size(-1)
   idx =  torch.multinomial(tensor.reshape(n, -1), k)
   return torch.cat((torch.divide(idx, d, rounding_mode='trunc').view(-1, 1), (idx % d).view(-1, 1)), dim=1)
 

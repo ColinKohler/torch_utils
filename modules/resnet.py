@@ -269,6 +269,19 @@ class UpsamplingBlock2(nn.Module):
 
     return x
 
+class UpsamplingBlock3(nn.Module):
+  def __init__(self, in_kernels, kernels, bnorm=True):
+    super(UpsamplingBlock3, self).__init__()
+
+    downsample = nn.Conv2d(in_kernels, kernels, kernel_size=1, bias=False)
+    self.layer = BasicBlock(in_kernels, kernels, bnorm=bnorm, downsample=downsample)
+
+  def forward(self, x1, x2):
+    x1  = F.interpolate(x1, size=x2.size()[2:], mode='bilinear', align_corners=False)
+    x = torch.cat([x2, x1], dim=1)
+
+    return self.layer(x)
+
 class CatConv(nn.Module):
   def __init__(self, in_kernels_1, in_kernels_2, kernels):
     super(CatConv, self).__init__()
