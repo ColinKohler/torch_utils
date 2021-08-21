@@ -28,9 +28,9 @@ def argmax3d(tensor):
   c = tensor.size(1)
   d = tensor.size(2)
   idx = tensor.contiguous().view(n, -1).argmax(1)
-  return torch.cat((torch.divide(idx, d**2, rounding_mode='trunc').view(-1, 1),
-                    (idx % d**2 / d).view(-1, 1),
-                    (idx % d**2 / d).view(-1, 1)), dim=1)
+  return torch.cat(((idx / (d**2)).view(-1, 1),
+                    ((idx % (d**2)) / d).view(-1, 1),
+                    ((idx % (d**2)) % d).view(-1, 1)), dim=1)
 
 def argmax4d(tensor):
   n = tensor.size(0)
