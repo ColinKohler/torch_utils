@@ -77,7 +77,6 @@ class Basic1x1Block(nn.Module):
 
       return out
 
-
 class BasicBlock(nn.Module):
     expansion = 1
 

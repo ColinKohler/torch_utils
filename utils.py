@@ -23,12 +23,53 @@ def argmax2d(tensor):
   idx = tensor.view(n, -1).argmax(1)
   return torch.cat((torch.divide(idx, d, rounding_mode='trunc').view(-1, 1), (idx % d).view(-1, 1)), dim=1)
 
+def argmax3d(tensor):
+  n = tensor.size(0)
+  c = tensor.size(1)
+  d = tensor.size(2)
+  idx = tensor.contiguous().view(n, -1).argmax(1)
+  return torch.cat((torch.divide(idx, d**2, rounding_mode='trunc').view(-1, 1),
+                    (idx % d**2 / d).view(-1, 1),
+                    (idx % d**2 / d).view(-1, 1)), dim=1)
+
+def argmax4d(tensor):
+  n = tensor.size(0)
+  c1 = tensor.size(1)
+  c2 = tensor.size(2)
+  d = tensor.size(3)
+  idx = tensor.contiguous().view(n, -1).argmax(1)
+  return torch.cat((torch.divide(idx, d**2 * c2, rounding_mode='trunc').view(-1, 1),
+                    (idx % (d**2 *c2) / d**2).view(-1, 1),
+                    (((idx % (d**2 * c2)) % d**2) / d).view(-1, 1),
+                    (((idx % (d**2 * c2)) % d**2) % d).view(-1, 1)), dim=1)
+
 def topk2d(tensor, k=1):
   n = tensor.size(0)
   d = tensor.size(-1)
-  val, idx = tensor.view(n, -1).topk(k)
+  val, idx = tensor.view(n, -1).topk(k, dim=1)
   idx = torch.cat((torch.divide(idx, d, rounding_mode='trunc').view(-1, 1), (idx % d).view(-1, 1)), dim=1)
   return val, idx
+
+def topk3d(tensor, k=1):
+  n = tensor.size(0)
+  c = tensor.size(1)
+  d = tensor.size(2)
+  idx = tensor.contiguous().view(n, -1).topk(k, dim=1)
+  return torch.cat((torch.divide(idx, d**2, rounding_mode='trunc').view(-1, 1),
+                    (idx % d**2 / d).view(-1, 1),
+                    (idx % d**2 / d).view(-1, 1)), dim=1)
+
+def argmax4d(tensor):
+  n = tensor.size(0)
+  c1 = tensor.size(1)
+  c2 = tensor.size(2)
+  d = tensor.size(3)
+  idx = tensor.contiguous().view(n, -1).topk(k, dim=1)
+  return torch.cat((torch.divide(idx, d**2 * c2, rounding_mode='trunc').view(-1, 1),
+                    (idx % (d**2 *c2) / d**2).view(-1, 1),
+                    (((idx % (d**2 * c2)) % d**2) / d).view(-1, 1),
+                    (((idx % (d**2 * c2)) % d**2) % d).view(-1, 1)), dim=1)
+
 
 def sample2d(tensor, k=1):
   if tensor.dim() == 2:
